@@ -5,17 +5,28 @@ import { uploadDisabled } from '../../utils';
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
-    if (uploadDisabled) throw new Error('Sorry, uploads are disabled');
+    try {
+        if (uploadDisabled) {
+            return new Response(JSON.stringify({ error: 'Uploads are disabled' }), { status: 403 });
+        }
 
-    const parameters = await request.json();
-    const blobStore = getStore('shapes');
-    const key = parameters.name;
-    await blobStore.setJSON(key, parameters);
-    return new Response(
-        JSON.stringify({
-            message: `Stored shape "${key}"`
-        })
-    );
+        const parameters = await request.json();
+        if (!parameters?.name) {
+            return new Response(JSON.stringify({ error: 'Missing blob name' }), { status: 400 });
+        }
+
+        const blobStore = getStore('shapes');
+        const key = parameters.name;
+        await blobStore.setJSON(key, parameters);
+        return new Response(
+            JSON.stringify({
+                message: `Stored shape "${key}"`
+            })
+        );
+    } catch (error) {
+        console.error('Error storing blob', error);
+        return new Response(JSON.stringify({ error: 'Failed storing blob' }), { status: 500 });
+    }
 };
 
 export const GET: APIRoute = async ({ request }) => {
@@ -34,7 +45,8 @@ export const GET: APIRoute = async ({ request }) => {
             JSON.stringify({
                 keys: [],
                 error: 'Failed listing blobs'
-            })
+            }),
+            { status: 500 }
         );
     }
 };

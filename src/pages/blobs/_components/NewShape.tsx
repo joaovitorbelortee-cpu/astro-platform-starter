@@ -10,8 +10,9 @@ interface Props {
 
 export default function NewShape(props: Props) {
     const { setLastMutationTime } = props;
-    const [blobData, setBlobData] = useState<BlobProps>();
+    const [blobData, setBlobData] = useState<BlobProps | null>(null);
     const [wasUploaded, setWasUploaded] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
     const randomizeBlob = () => {
         setBlobData(generateBlob());
@@ -19,17 +20,34 @@ export default function NewShape(props: Props) {
     };
 
     const uploadBlob = async () => {
-        const response = await fetch('/api/blobs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(blobData.parameters)
-        });
-        const data = await response.json();
-        if (data.message) {
-            console.log(data.message);
+        try {
+            setError(null);
+            if (!blobData) {
+                throw new Error('Blob data not ready');
+            }
+
+            const response = await fetch('/api/blobs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(blobData.parameters)
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data?.error ?? `Upload failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.message) {
+                console.log(data.message);
+            }
+            setWasUploaded(true);
+            setLastMutationTime?.(Date.now());
+        } catch (err) {
+            console.error('Unable to upload blob', err);
+            const message = err instanceof Error ? err.message : null;
+            setError(message ?? 'Unable to connect to the server. Please ensure the backend is running.');
         }
-        setWasUploaded(true);
-        setLastMutationTime(Date.now());
     };
 
     useEffect(() => {
@@ -45,6 +63,7 @@ export default function NewShape(props: Props) {
                 <div className="p-4 text-center text-gray-900 border-b border-gray-200 min-h-14">{blobData && <span>{blobData.parameters?.name}</span>}</div>
                 <div className="p-4 aspect-square text-primary">{blobData && <ShapePreview {...blobData} />}</div>
             </div>
+            {error && <p className="w-full mb-2 text-sm text-center text-red-600">{error}</p>}
             <div className="flex flex-wrap justify-center gap-4">
                 <button className="btn" onClick={randomizeBlob}>
                     Randomize
