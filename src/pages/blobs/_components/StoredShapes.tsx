@@ -12,28 +12,53 @@ export default function StoredShapes(props: Props) {
     const [keys, setKeys] = useState<string[]>([]);
     const [selectedKey, setSelectedKey] = useState<string>(null);
     const [previewData, setPreviewData] = useState<BlobProps>(null);
+    const [error, setError] = useState<string>(null);
 
     const getBlobKeyList = async () => {
-        console.log('Fetching keys...');
-        const response = await fetch('/api/blobs', {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-        if (data.keys) {
-            setKeys(data.keys);
+        try {
+            console.log('Fetching keys...');
+            setError(null);
+            const response = await fetch('/api/blobs', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch keys: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.keys) {
+                setKeys(data.keys);
+            }
+        } catch (err) {
+            console.error('Unable to load blob keys', err);
+            setKeys([]);
+            setError('Unable to connect to the server. Please ensure the backend is running.');
         }
     };
 
     const getBlobByKey = async (key: string) => {
         setSelectedKey(key);
-        const params = new URLSearchParams({ key });
-        const response = await fetch(`/api/blob/?${params}`, {
-            method: 'GET'
-        });
-        const data = await response.json();
-        if (data.blob) {
-            setPreviewData(generateBlob(data.blob));
+        try {
+            setError(null);
+            const params = new URLSearchParams({ key });
+            const response = await fetch(`/api/blob/?${params}`, {
+                method: 'GET'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch blob: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.blob) {
+                setPreviewData(generateBlob(data.blob));
+            }
+        } catch (err) {
+            console.error(`Unable to load blob with key ${key}`, err);
+            setPreviewData(null);
+            setError('Unable to connect to the server. Please ensure the backend is running.');
         }
     };
 
@@ -46,6 +71,7 @@ export default function StoredShapes(props: Props) {
             <h2 className="mb-4 text-xl text-center sm:text-xl">Objects in Blob Store</h2>
             <div className="w-full bg-white rounded-lg">
                 <div className="p-4 text-center min-h-14">
+                    {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
                     {keys?.length ? (
                         <div className="space-y-1">
                             {keys.map((keyName) => (
