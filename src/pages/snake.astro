@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SnakeGame from '../components/SnakeGame';
+---
+
+<Layout title="Jogo da cobrinha">
+    <div class="space-y-6">
+        <h1>Jogo da cobrinha</h1>
+        <p class="text-lg text-gray-100/90">
+            Jogue uma versão moderna do clássico jogo da cobrinha diretamente no navegador. Use as setas do teclado
+            para guiar a cobra, coma a fruta rosa e tente alcançar a maior pontuação possível sem bater nas bordas
+            ou em si mesma.
+        </p>
+
+        <SnakeGame client:load />
+    </div>
+</Layout>
